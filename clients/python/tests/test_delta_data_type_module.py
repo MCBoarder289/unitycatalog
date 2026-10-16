@@ -216,6 +216,56 @@ class TestJsonRoundTrip:
         assert reserialized == original
 
 
+class TestMetadataPreservation:
+    """_parse_field must preserve arbitrary metadata keys, not just pass an
+    empty/raw dict through pydantic's default coercion (which silently drops
+    any key not declared as a DeltaStructFieldMetadata field)."""
+
+    def test_nonempty_metadata_round_trip(self):
+        json_str = json.dumps({
+            "name": "col", "type": "long", "nullable": True,
+            "metadata": {"comment": "hello", "delta.columnMapping.id": 5},
+        })
+        col = DeltaStructField.from_json(json_str)
+        assert isinstance(col.metadata, DeltaStructFieldMetadata)
+        assert col.metadata.additional_properties == {
+            "comment": "hello", "delta.columnMapping.id": 5,
+        }
+        assert json.loads(col.to_json())["metadata"] == {
+            "comment": "hello", "delta.columnMapping.id": 5,
+        }
+
+    def test_nested_metadata_value_round_trip(self):
+        json_str = json.dumps({
+            "name": "col", "type": "long", "nullable": True,
+            "metadata": {"nested": {"a": 1, "b": [1, 2, 3]}},
+        })
+        col = DeltaStructField.from_json(json_str)
+        assert col.metadata.additional_properties["nested"] == {"a": 1, "b": [1, 2, 3]}
+        assert json.loads(col.to_json())["metadata"]["nested"] == {"a": 1, "b": [1, 2, 3]}
+
+    def test_metadata_on_nested_struct_fields(self):
+        json_str = json.dumps({
+            "name": "root",
+            "type": {
+                "type": "struct",
+                "fields": [
+                    {
+                        "name": "inner", "type": "string", "nullable": False,
+                        "metadata": {"comment": "inner column"},
+                    },
+                ],
+            },
+            "nullable": True,
+            "metadata": {},
+        })
+        col = DeltaStructField.from_json(json_str)
+        inner = col.type.fields[0]
+        assert inner.metadata.additional_properties == {"comment": "inner column"}
+        reserialized = json.loads(col.to_json())
+        assert reserialized["type"]["fields"][0]["metadata"] == {"comment": "inner column"}
+
+
 class TestParseTypeEdgeCases:
     """Error handling for _parse_type."""
 

@@ -19,6 +19,7 @@ from unitycatalog.delta.models.delta_decimal_type import DeltaDecimalType
 from unitycatalog.delta.models.delta_map_type import DeltaMapType
 from unitycatalog.delta.models.delta_primitive_type import DeltaPrimitiveType
 from unitycatalog.delta.models.delta_struct_field import DeltaStructField
+from unitycatalog.delta.models.delta_struct_field_metadata import DeltaStructFieldMetadata
 from unitycatalog.delta.models.delta_struct_type import DeltaStructType
 
 _DECIMAL_PATTERN = re.compile(r"decimal\((\d+),\s*(\d+)\)")
@@ -64,7 +65,10 @@ def _parse_field(obj):
         name=obj.get("name"),
         type=_parse_type(obj.get("type")),
         nullable=obj.get("nullable", True),
-        metadata=obj.get("metadata", {}))
+        # Use DeltaStructFieldMetadata.from_dict (not a raw dict) so arbitrary
+        # metadata keys land in additional_properties instead of being silently
+        # dropped by pydantic's default dict-to-model coercion.
+        metadata=DeltaStructFieldMetadata.from_dict(obj.get("metadata", {})))
 
 
 def _type_to_dict(dt):
