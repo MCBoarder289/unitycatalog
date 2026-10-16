@@ -126,12 +126,10 @@ object PythonClientPostBuild {
     val targetModule = targetSerdeDir.resolve("delta_data_type_module.py")
 
     if (!Files.exists(srcModule)) {
-      log.warn(s"delta_data_type_module.py not found at $srcModule, skipping patch")
-      return
+      sys.error(s"delta_data_type_module.py not found at $srcModule; cannot apply Delta serde patch")
     }
     if (!Files.exists(targetDir)) {
-      log.warn(s"Delta package not found at $targetDir, skipping patch")
-      return
+      sys.error(s"Delta package not found at $targetDir; Delta client generation did not produce the expected package")
     }
 
     // Copy the module into internal/serde/ subdirectory
@@ -160,7 +158,7 @@ object PythonClientPostBuild {
         log.info(s"$modelsInit already patched, skipping")
       }
     } else {
-      log.warn(s"$modelsInit not found, skipping patch")
+      sys.error(s"$modelsInit not found; Delta client generation did not produce the expected models package, so the serde patch could not be wired in")
     }
   }
 
