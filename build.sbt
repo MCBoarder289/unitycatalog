@@ -325,7 +325,11 @@ lazy val pythonClient = (project in file("clients/python"))
             OpenApiSpec(
               inputSpec = (baseDirectory.value.getParentFile.getParentFile / "api" / "delta.yaml").getAbsolutePath,
               packageName = s"$artifactNamePrefix.delta",
-              additionalProperties = commonProps
+              additionalProperties = commonProps,
+              // delta.yaml's allOf+discriminator subtypes trip an openapi-generator
+              // 7.9.0 Python codegen bug (allVars drops subtype-only fields); see
+              // clients/python/build/templates/README.md. Scoped to this spec only.
+              templateDir = (baseDirectory.value / "build" / "templates").getAbsolutePath
             )
           )
         )

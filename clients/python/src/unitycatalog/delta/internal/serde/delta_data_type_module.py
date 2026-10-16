@@ -109,6 +109,14 @@ def _patched_sf_from_dict(cls, obj):
 
 DeltaDataType.from_dict = _patched_dt_from_dict
 DeltaStructField.from_dict = _patched_sf_from_dict
+# DeltaStructType is also referenced directly (not just via DeltaDataType) by
+# DeltaSetSchemaUpdate.columns and other fields, so it needs its own from_dict
+# patch too: unlike the discriminator subtypes under DeltaTableRequirement/
+# DeltaTableUpdate, DeltaStructType does not redeclare its parent's "type"
+# property, so the __properties/from_dict generator-template fix (see
+# clients/python/build/templates/README.md) doesn't reach it -- its own field
+# set would still be computed as just ["fields"], silently dropping "type".
+DeltaStructType.from_dict = _patched_dt_from_dict
 
 # Patch instance methods
 DeltaDataType.to_dict = _type_to_dict
